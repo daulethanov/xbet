@@ -1,0 +1,54 @@
+version: "3"
+
+services:
+
+  flask:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - media:/backend/uploads
+
+  database:
+    container_name: "database_bot"
+    image: postgres:14.1-alpine
+    environment:
+      - POSTGRES_DB=xbet
+      - POSTGRES_USER=xbet
+      - POSTGRES_PASSWORD=xbet
+    ports:
+      - "5432:5432"
+
+  # nginx:
+  #   build: ./nginx
+  #   depends_on:
+  #     - flask
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - media:/backend/uploads
+
+  # react:
+  #   build:
+  #     context: ./frontend/my-app
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000"
+
+  bot:
+    build: ./backend
+    entrypoint: python bot.py
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://xbet:xbet@database_bot:5432/xbet
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - database
+      - flask
+
+volumes:
+  media:
