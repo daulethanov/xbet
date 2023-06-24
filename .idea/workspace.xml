@@ -5,18 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="087883fb-4f09-49a4-8abe-0d1ea60f6230" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/xbet.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/dashboard/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/dashboard/admin.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/services/bet/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/bet/model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/services/bet/sh.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/bet/sh.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/services/bet/view.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/bet/view.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/services/mail/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/mail/__init__.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

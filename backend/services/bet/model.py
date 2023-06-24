@@ -17,14 +17,29 @@ class Hall(db.Model):
     city = db.Column(db.String())
     price = db.Column(db.Integer())
     dop_hall_id = db.Column(db.Integer, db.ForeignKey('dophall.id'))
+    dop_hall = db.relationship('DopHall')
+
+    def __repr__(self):
+        return self.name
+
+    @property
+    def total_price(self):
+        dop_hall_price = self.dop_hall.bottle + self.dop_hall.snickers + self.dop_hall.form
+        return self.price + dop_hall_price
 
 
 class DopHall(db.Model):
     __tablename__ = 'dophall'
+
     id = db.Column(db.Integer(), primary_key=True)
     bottle = db.Column(db.Integer())
     snickers = db.Column(db.Integer())
     form = db.Column(db.Integer())
+
+    def __repr__(self):
+        return str(self.bottle)
+
+
 
 
 class Command(db.Model):
@@ -54,15 +69,24 @@ class Math(db.Model):
     finish_math = db.Column(db.DateTime())
     closed_match = db.Column(db.Boolean(), default=False)
     commands = db.relationship(Command, secondary='maths_commands', backref=db.backref('math', lazy='dynamic'))
+    command1_goal = db.Column(db.Integer())
+    command2_goal = db.Column(db.Integer())
     command1_id = db.Column(db.Integer, db.ForeignKey('command.id'))
     command2_id = db.Column(db.Integer, db.ForeignKey('command.id'))
-
+    command1_bet = db.Column(db.Integer())
+    command2_bet = db.Column(db.Integer())
     command1 = db.relationship("Command", foreign_keys=[command1_id])
     command2 = db.relationship("Command", foreign_keys=[command2_id])
     audience = db.relationship("User", secondary="math_audience", backref=db.backref('math', lazy='dynamic'))
+    hall = db.relationship("Hall", secondary="maths_halls", backref=db.backref('math', lazy='dynamic'))
+    price = db.Column(db.Integer())
+    active_math = db.Column(db.Boolean(), default=True)
+
 
     def __repr__(self):
         return self.name
+
+
 
 
 commands_users = db.Table(
@@ -93,4 +117,14 @@ hall_command = db.Table(
     db.Column('hall_id', db.Integer, db.ForeignKey('hall.id')),
     db.Column('command_id', db.Integer, db.ForeignKey('command.id'))
 )
+
+
+maths_halls = db.Table(
+    "maths_halls",
+    db.Column('id', db.Integer, primary_key=True, autoincrement=True),
+    db.Column('hall_id', db.Integer, db.ForeignKey('hall.id')),
+    db.Column('math_id', db.Integer, db.ForeignKey('math.id'))
+)
+
+
 

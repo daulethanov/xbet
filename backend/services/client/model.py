@@ -14,6 +14,7 @@ class User(db.Model):
     tg_token = db.Column(db.String(), unique=True)
     token = db.Column(db.String())
     active = db.Column(db.Boolean(), default=1)
+    active_math = db.Column(db.Boolean(), default=0)
     created_at = db.Column(db.DateTime, default=datetime.now())
     number = db.Column(db.String())
     coin = db.Column(db.Integer(), default=999999)
@@ -36,9 +37,9 @@ class User(db.Model):
         db.session.add(user)
         db.session.commit()
 
-    def create_token(self, identity, id):
-        additional_claims = {'user_id': id}
-        access_token = create_access_token(identity=identity, additional_claims=additional_claims)
+    def create_token(self, user_id):
+        additional_claims = {'user_id': user_id}
+        access_token = create_access_token(identity=user_id, additional_claims=additional_claims)
         return access_token
 
 

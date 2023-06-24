@@ -27,7 +27,7 @@ def login():
     if email and password:
         user = User.query.filter_by(email=email).first()
         if user and user.password_check_hash(password):
-            access_token = user.create_token(identity=user.id, id=user.id)
+            access_token = user.create_token(user_id=user.id)
             return jsonify({"access_token": access_token, "user": user.id}), 200
     return jsonify(message="Invalid number, password, or role"), 401
 
@@ -48,7 +48,7 @@ def register():
     )
 
     if user:
-        access_token = user.create_token(identity=user.id, id=user.id)
+        access_token = user.create_token(user_id=user.id)
         user.create_user(user)
         code = "Вы зарегистрированы"
         send_password_reset_email(user, code)
@@ -79,9 +79,8 @@ def register_players():
         send_email_register(user, random_password, token)
 
         if user:
-            access_token = user.create_token(identity=user.id, id=user.id)
             user.create_user(user)
-
+            access_token = user.create_token(user_id=user.id)
             result = UserSchema().dump(user)
 
             return jsonify({"access_token": access_token, "user": user.id, "data": result}), 201

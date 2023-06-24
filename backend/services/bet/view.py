@@ -5,12 +5,14 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
+from sqlalchemy import func
+
 from config import db
 from services.bet.sh import HallSchema, MathSchema, CommandSchema, MatchCreateSchema
 from services.bet.model import Hall, Math, Command
 from services.client.model import User
 from services.client.sh import UserSchema
-from services.mail import send_notification_email, send_invitation_notification
+from services.mail import send_notification_email, send_invitation_notification, send_mail
 
 bet = Blueprint('bet', __name__, url_prefix="/api/bet")
 
@@ -69,7 +71,7 @@ def get_command(id):
 @bet.route('/command/create', methods=["POST"])
 @jwt_required()
 def create_command():
-    current_user_id = get_jwt_identity().get("id")
+    current_user_id = get_jwt_identity()
     user_schema = UserSchema()
 
     try:
@@ -104,6 +106,7 @@ def create_command():
     except ValidationError as e:
         return jsonify(error=e.messages), 400
 
+
 @bet.route('/math/create', methods=["POST"])
 def create_math():
     data = request.get_json()
@@ -118,6 +121,8 @@ def create_math():
     start_math_str = data['start_math']
     command1_id = data['command1_id']
     command2_id = data['command2_id']
+    hall_ids = data.get('hall_ids', [])
+    halls = Hall.query.filter(Hall.id.in_(hall_ids)).all()
 
     start_math = datetime.fromisoformat(start_math_str)
 
@@ -127,32 +132,174 @@ def create_math():
     if not command1 or not command2:
         return jsonify({"message": "Invalid command1_id or command2_id"}), 404
 
+    total_price = sum(hall.total_price for hall in halls)
+    participants_count = (
+            db.session.query(func.count(func.distinct(User.id)))
+            .filter(User.id.in_(user.id for user in command1.users))
+            .scalar()
+            + db.session.query(func.count(func.distinct(User.id)))
+            .filter(User.id.in_(user.id for user in command2.users))
+            .scalar()
+    )
+    if participants_count > 0:
+        total_price_per_participant = total_price / participants_count
+    else:
+        total_price_per_participant = 0
+
     math = Math(
         name=name,
         kind_of_sport=kind_of_sport,
         description=description,
         start_math=start_math,
         command1=command1,
-        command2=command2
+        command2=command2,
+        hall=halls,
+        price=total_price
     )
 
     db.session.add(math)
     db.session.commit()
+    divided_number = total_price_per_participant / participants_count
+
+    for user in command1.users:
+        if user.active_math:
+            user.coin -= divided_number
+            send_mail(user.email, "Матч", f"{name}, Дата начала: {start_math_str}, Счет за оплату в размере "
+                                          f"{divided_number}\n У вас списалось {divided_number}\n"
+                                          f"Остаток на счету {user.coin}")
+
+    for user in command2.users:
+        if user.active_math:
+            user.coin -= divided_number
+            send_mail(user.email, "Матч", f"{name}, Дата начала: {start_math_str}, Счет за оплату в размере "
+                                          f"{divided_number}\n У вас списалось {divided_number}\n"
+                                          f"Остаток на счету {user.coin}")
 
     return jsonify({"message": "Math created successfully", "math_id": math.id}), 201
+
+
+@bet.route('/math/<int:math_id>/cancel', methods=["POST"])
+def cancel_math(math_id):
+    math = Math.query.get(math_id)
+    if not math:
+        return jsonify({"message": "Math not found"}), 404
+
+    if math.active_math:
+        math.active_math = False
+        db.session.commit()
+
+        total_winning_users = len(math.audience)
+        if total_winning_users > 0:
+            share_amount = math.price / total_winning_users
+            for winning_user in math.audience:
+                winning_user.coin += share_amount
+            db.session.commit()
+
+        return jsonify({"message": "Math canceled successfully"}), 200
+    else:
+        return jsonify({"message": "Math is already canceled"}), 400
+
+
+@bet.route('/math/<int:id>/place_bet', methods=["POST"])
+@jwt_required()
+def place_bet(id):
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    selected_command = data['command']
+    bet_amount = data.get('bet_amount')  # Retrieve the bet_amount field from the JSON data
+
+    if bet_amount is None:
+        return jsonify({"message": "bet_amount field is missing"}), 400
+
+    math = Math.query.get(id)
+    user = User.query.filter_by(id=user_id).first()
+
+    if user in math.audience:
+        if selected_command == 1:
+            if math.command1 is not None:
+                command = math.command1
+                math.command1_bet = (math.command1_bet or 0) + bet_amount
+            else:
+                return jsonify({"message": "Command 1 is not available for this match"}), 400
+        elif selected_command == 2:
+            if math.command2 is not None:
+                command = math.command2
+                math.command2_bet = (math.command2_bet or 0) + bet_amount
+            else:
+                return jsonify({"message": "Command 2 is not available for this match"}), 400
+        else:
+            return jsonify({"message": "Invalid command selection"}), 400
+
+        if user.coin >= bet_amount:
+            user.coin -= bet_amount
+            db.session.add(user)  # Add the user to the session for updating the coin value
+            db.session.commit()
+
+            return jsonify({"message": "Bet placed successfully", "new_coin_balance": user.coin}), 200
+        else:
+            return jsonify({"message": "Insufficient balance"}), 400
+    else:
+        return jsonify({"message": "Unauthorized to place bets for this match"}), 403
 
 
 @bet.route('/confirm/<email>', methods=["GET"])
 def confirm_email(email):
     user = User.query.filter_by(email=email).first()
     if user:
-        user.email_verified = True
+        user.active_math = True
         db.session.commit()
         return "Email verification successful. You can now log in."
-
     return "Email verification failed. Invalid email or user not found."
 
+@bet.route('/math/<int:id>/end_match', methods=["POST"])
+def end_match(id):
+    math = Math.query.get(id)
 
+    if math.closed_match:
+        return jsonify({"message": "Match has already been closed"}), 400
+
+    # current_time = datetime.now()
+    # if current_time < math.finish_math:
+    #     return jsonify({"message": "Match has not finished yet"}), 400
+
+    if math.command1_goal > math.command2_goal:
+        winning_command = math.command1
+    elif math.command2_goal > math.command1_goal:
+        winning_command = math.command2
+    else:
+        return handle_draw(math)
+
+    total_bet_amount = math.command1_bet + math.command2_bet
+
+    winning_users = winning_command.audience.all()
+    total_winning_users = len(winning_users)
+
+    if total_winning_users > 0:
+        share_amount = total_bet_amount / total_winning_users
+        for winning_user in winning_users:
+            winning_user.coin += share_amount
+
+    math.closed_match = True
+    db.session.commit()
+
+    return jsonify({"message": "Match ended successfully"}), 200
+
+
+def handle_draw(math):
+    command1_users = math.command1.audience.all()
+    command2_users = math.command2.audience.all()
+
+    for user in command1_users:
+        user.coin += math.command1_bet
+
+    for user in command2_users:
+        user.coin += math.command2_bet
+
+    math.closed_match = True
+    db.session.commit()
+
+    return jsonify({"message": "Match ended in a draw"}), 200
 
 
 

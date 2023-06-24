@@ -40,12 +40,26 @@ def send_invitation_notification(email, command_name):
     body = f"Вас пригласили присоединиться к команде: {command_name}.\n" \
            f"Пожалуйста, перейдите по следующей ссылке, чтобы принять или отклонить приглашение:\n" \
            f"{confirmation_link}\n" \
-           f"Дата начала матча: "
+           f"Дата начала матча: \n"\
+           f"Если не хотите участвовать не переходите по ссылке"
 
-    # Отправить уведомление по электронной почте
     mail = current_app.extensions.get('mail')
     message = Message(subject=subject, body=body, recipients=[email])
     mail.send(message)
+
+def send_mail(email, command_name, match_start_date):
+    confirmation_link = generate_confirmation_link(email)  # Generate a unique confirmation link
+
+    # Compose the email message
+    subject = "Оплата"
+    body = f"Ваш счет за игру {command_name}.\n" \
+           f"Пожалуйста, перейдите по следующей ссылке, чтобы принять или отклонить приглашение:\n" \
+           f"Дата начала матча: {match_start_date}\n" \
+           f"Ссылка для подтверждения: {confirmation_link}"
+
+    # Send the email notification
+    msg = Message(subject=subject, body=body, recipients=[email])
+    mail.send(msg)
 
 
 def generate_confirmation_link(email):

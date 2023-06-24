@@ -19,6 +19,7 @@ class CommandSchema(Schema):
     goal = f.Int()
     users = f.List(f.Nested("UserSchema"))
 
+
 class HallSchema(Schema):
     id = f.Int()
     name = f.Str()
@@ -44,6 +45,7 @@ class MathSchema(Schema):
     closed_match = f.Boolean()
     commands = f.Nested(CommandSchema(many=True))
     audience = f.Nested(UserSchema(many=True))
+    halls = f.Nested('HallSchema', many=True, only=["id", "name", "price"])
 
 
 class MatchCreateSchema(Schema):
@@ -54,3 +56,5 @@ class MatchCreateSchema(Schema):
     finish_math = f.DateTime()
     command1_id = f.Int(required=True)
     command2_id = f.Int(required=True)
+    hall_ids = f.List(f.Integer())
+    price = f.Integer()
