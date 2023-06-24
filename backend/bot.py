@@ -22,15 +22,26 @@ def view_math(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
     with app.app_context():
-        math = Math.query.all()
-        if math:
-            for mat in math:
-                button = types.KeyboardButton(mat.name)
+        matches = Math.query.all()
+        if matches:
+            for match in matches:
+                button = types.KeyboardButton(match.name)
                 markup.add(button)
 
             bot.send_message(message.chat.id, text='Выберите матч:', reply_markup=markup)
+            bot.register_next_step_handler(message, handle_match_selection)  # Register the next step handler
         else:
             bot.send_message(message.chat.id, text='Нет доступных матчей.')
+
+
+def handle_match_selection(message):
+    with app.app_context():
+        match = Math.query.filter_by(name=message.text).first()
+        if match:
+            match_info = f"Название: {match.name}\n"
+            bot.send_message(message.chat.id, text=match_info)
+        else:
+            bot.send_message(message.chat.id, text='Матч не найден.')
 
 
 @bot.message_handler(commands=['start', 'help'], content_types=['text'])
@@ -39,14 +50,6 @@ def start(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("Регистрация")
     btn2 = types.KeyboardButton("Войти")
-    markup.add(btn1, btn2)
-    bot.send_message(message.chat.id, 'Вас приветствует BetBot 👾', reply_markup=markup)
-
-
-def start(message):
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn1 = telebot.types.KeyboardButton("Регистрация")
-    btn2 = telebot.types.KeyboardButton("Войти")
     markup.add(btn1, btn2)
     bot.send_message(message.chat.id, 'Вас приветствует BetBot 👾', reply_markup=markup)
 
@@ -93,7 +96,6 @@ def button_in_login(message):
         bot.register_next_step_handler(message, view_math)
     elif message.text == 'Все команды':
         bot.register_next_step_handler(message, process_login)
-
 
 
 

@@ -16,6 +16,15 @@ class Hall(db.Model):
     address = db.Column(db.String())
     city = db.Column(db.String())
     price = db.Column(db.Integer())
+    dop_hall_id = db.Column(db.Integer, db.ForeignKey('dophall.id'))
+
+
+class DopHall(db.Model):
+    __tablename__ = 'dophall'
+    id = db.Column(db.Integer(), primary_key=True)
+    bottle = db.Column(db.Integer())
+    snickers = db.Column(db.Integer())
+    form = db.Column(db.Integer())
 
 
 class Command(db.Model):

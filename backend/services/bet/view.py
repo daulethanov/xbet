@@ -10,7 +10,7 @@ from services.bet.sh import HallSchema, MathSchema, CommandSchema, MatchCreateSc
 from services.bet.model import Hall, Math, Command
 from services.client.model import User
 from services.client.sh import UserSchema
-from services.mail import send_notification_email
+from services.mail import send_notification_email, send_invitation_notification
 
 bet = Blueprint('bet', __name__, url_prefix="/api/bet")
 
@@ -66,11 +66,48 @@ def get_command(id):
         return jsonify({"message": "Command not found"}), 404
 
 
+@bet.route('/command/create', methods=["POST"])
+@jwt_required()
+def create_command():
+    current_user_id = get_jwt_identity().get("id")
+    user_schema = UserSchema()
+
+    try:
+        command_data = CommandSchema().load(request.json)
+        command = Command(name=command_data['name'])
+
+        users = command_data.get("users")
+        if users:
+            for user in users:
+                email = user.get("email")
+                if email:
+                    try:
+                        user_data = user_schema.load({'email': email})
+                        existing_user = User.query.filter_by(email=user_data['email']).first()
+                        if existing_user:
+                            command.users.append(existing_user)
+                            send_invitation_notification(existing_user.email, command.name)
+                        else:
+                            random_password = ''.join(random.choices(string.ascii_lowercase, k=8))
+                            new_user = User(email=user_data['email'], password=random_password)
+                            command.users.append(new_user)
+                            send_invitation_notification(new_user.email, command.name)
+                            db.session.add(new_user)
+
+                    except ValidationError as e:
+                        return jsonify(error='Ошибка: Некорректный адрес электронной почты.'), 400
+
+        db.session.add(command)
+        db.session.commit()
+
+        return jsonify(message='Команда создана успешно.'), 200
+    except ValidationError as e:
+        return jsonify(error=e.messages), 400
+
 @bet.route('/math/create', methods=["POST"])
 def create_math():
     data = request.get_json()
 
-    # Validate the request data using the schema
     errors = MatchCreateSchema().validate(data)
     if errors:
         return jsonify({"message": "Invalid request data", "errors": errors}), 400
@@ -103,6 +140,19 @@ def create_math():
     db.session.commit()
 
     return jsonify({"message": "Math created successfully", "math_id": math.id}), 201
+
+
+@bet.route('/confirm/<email>', methods=["GET"])
+def confirm_email(email):
+    user = User.query.filter_by(email=email).first()
+    if user:
+        user.email_verified = True
+        db.session.commit()
+        return "Email verification successful. You can now log in."
+
+    return "Email verification failed. Invalid email or user not found."
+
+
 
 
 
