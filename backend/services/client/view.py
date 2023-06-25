@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from config import allowed_file, db
 from .model import User, ImageUpload
 from .sh import UserSchema
+from ..bet.model import Hall
 from ..mail import send_password_reset_email, send_email_register
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
@@ -32,28 +33,34 @@ def login():
     return jsonify(message="Invalid number, password, or role"), 401
 
 
-@auth.route("/register", methods=["POST"])
-def register():
-    try:
-        user_data = UserSchema(only=('email', 'password', 'full_name')).load(request.json)
-    except ValidationError as e:
-        return jsonify(e.messages), 400
+def create_mathes():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    errors = MatchCreateSchema(only=("name", 'start_math', "finish_math", "hall",)).validate(data)
+    if errors:
+        return jsonify({"message": "Invalid request data", "errors": errors}), 400
 
-    pwd = User.password_hash(password=user_data['password'])
-
-    user = User(
-        email=user_data['email'],
-        full_name=user_data['full_name'],
-        password=pwd
+    name = data['name']
+    start_math_str = data['start_math']
+    hall_ids = data.get('hall_ids', [])
+    halls = Hall.query.filter(Hall.id.in_(hall_ids)).all()
+    start_math = datetime.fromisoformat(start_math_str)
+    finish_math = datetime.fromisoformat(data['finish_math'])
+    math = Math(
+        user_id=user_id,
+        name=name,
+        start_math=start_math,
+        hall=halls,
+        finish_math=finish_math
     )
 
-    if user:
-        access_token = user.create_token(user_id=user.id)
-        user.create_user(user)
-        code = "Вы зарегистрированы"
-        send_password_reset_email(user, code)
-        result = UserSchema().dump(user)
-        return jsonify({"access_token": access_token, "user": user.id, "data": result}), 201
+    db.session.add(math)
+    db.session.commit()
+
+    return jsonify({"message": "Math created successfully", "math_id": math.id}), 201
+
+
+
 
 
 @auth.route("/register/players", methods=["POST"])

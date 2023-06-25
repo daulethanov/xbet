@@ -47,6 +47,7 @@ def send_invitation_notification(email, command_name):
     message = Message(subject=subject, body=body, recipients=[email])
     mail.send(message)
 
+
 def send_mail(email, command_name, match_start_date):
     confirmation_link = generate_confirmation_link(email)  # Generate a unique confirmation link
 

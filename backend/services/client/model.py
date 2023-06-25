@@ -7,22 +7,22 @@ from config import db
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
-    role = db.Column(db.String())
+    role = db.Column(db.String)
     full_name = db.Column(db.String(100))
     email = db.Column(db.String(255), unique=True)
     password = db.Column(db.String(255))
-    tg_token = db.Column(db.String(), unique=True)
-    token = db.Column(db.String())
-    active = db.Column(db.Boolean(), default=1)
-    active_math = db.Column(db.Boolean(), default=0)
+    tg_token = db.Column(db.String, unique=True)
+    token = db.Column(db.String)
+    active = db.Column(db.Boolean, default=True)
+    active_math = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now())
-    number = db.Column(db.String())
-    coin = db.Column(db.Integer(), default=999999)
+    number = db.Column(db.String)
+    coin = db.Column(db.Integer, default=999999)
     image = db.relationship('ImageUpload', backref='user')
-    code_password = db.Column(db.String())
-    capitan = db.Column(db.Boolean(), default=False)
-    card = db.Column(db.String())
-    age = db.Column(db.Integer())
+    code_password = db.Column(db.String)
+    capitan = db.Column(db.Boolean, default=False)
+    card = db.Column(db.String)
+    age = db.Column(db.Integer)
 
     def __repr__(self):
         return self.email

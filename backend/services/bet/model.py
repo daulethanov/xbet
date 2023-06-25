@@ -1,5 +1,6 @@
 from datetime import datetime
 from config import db
+from services.client.model import User
 
 
 class Hall(db.Model):
@@ -60,27 +61,31 @@ class Command(db.Model):
 class Math(db.Model):
     __tablename__ = "math"
 
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship('User', backref=db.backref('maths_created'))
     name = db.Column(db.String())
     kind_of_sport = db.Column(db.String())
     description = db.Column(db.String())
-    created_at = db.Column(db.DateTime(), default=datetime.now())
-    start_math = db.Column(db.DateTime())
-    finish_math = db.Column(db.DateTime())
-    closed_match = db.Column(db.Boolean(), default=False)
-    commands = db.relationship(Command, secondary='maths_commands', backref=db.backref('math', lazy='dynamic'))
-    command1_goal = db.Column(db.Integer())
-    command2_goal = db.Column(db.Integer())
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    start_math = db.Column(db.DateTime)
+    finish_math = db.Column(db.DateTime)
+    closed_match = db.Column(db.Boolean, default=False)
+    commands = db.relationship('Command', secondary='maths_commands', backref=db.backref('math', lazy='dynamic'))
+    command1_goal = db.Column(db.Integer)
+    command2_goal = db.Column(db.Integer)
     command1_id = db.Column(db.Integer, db.ForeignKey('command.id'))
     command2_id = db.Column(db.Integer, db.ForeignKey('command.id'))
-    command1_bet = db.Column(db.Integer())
-    command2_bet = db.Column(db.Integer())
-    command1 = db.relationship("Command", foreign_keys=[command1_id])
-    command2 = db.relationship("Command", foreign_keys=[command2_id])
-    audience = db.relationship("User", secondary="math_audience", backref=db.backref('math', lazy='dynamic'))
-    hall = db.relationship("Hall", secondary="maths_halls", backref=db.backref('math', lazy='dynamic'))
-    price = db.Column(db.Integer())
-    active_math = db.Column(db.Boolean(), default=True)
+    command1_bet = db.Column(db.Integer)
+    command2_bet = db.Column(db.Integer)
+    command1 = db.relationship('Command', foreign_keys=[command1_id])
+    command2 = db.relationship('Command', foreign_keys=[command2_id])
+    audience = db.relationship('User', secondary='math_audience', backref=db.backref('maths_participated', lazy='dynamic'))
+    hall = db.relationship('Hall', secondary='maths_halls', backref=db.backref('math', lazy='dynamic'))
+    dop_price = db.Column(db.Integer)
+    price = db.Column(db.Integer)
+    active_math = db.Column(db.Boolean, default=True)
+
 
 
     def __repr__(self):

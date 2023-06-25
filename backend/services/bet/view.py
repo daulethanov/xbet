@@ -8,7 +8,7 @@ from marshmallow import ValidationError
 from sqlalchemy import func
 
 from config import db
-from services.bet.sh import HallSchema, MathSchema, CommandSchema, MatchCreateSchema
+from services.bet.sh import HallSchema, MathSchema, CommandSchema, MatchCreateSchema, MatchSchemaView
 from services.bet.model import Hall, Math, Command
 from services.client.model import User
 from services.client.sh import UserSchema
@@ -76,7 +76,11 @@ def create_command():
 
     try:
         command_data = CommandSchema().load(request.json)
-        command = Command(name=command_data['name'])
+        command_name = command_data['name']
+
+        command = Command.query.filter_by(name=command_name).first()
+        if not command:
+            return jsonify(error=f"Command '{command_name}' does not exist."), 404
 
         users = command_data.get("users")
         if users:
@@ -99,83 +103,102 @@ def create_command():
                     except ValidationError as e:
                         return jsonify(error='Ошибка: Некорректный адрес электронной почты.'), 400
 
-        db.session.add(command)
         db.session.commit()
 
-        return jsonify(message='Команда создана успешно.'), 200
+        return jsonify(message='Пользователи добавлены в команду успешно.'), 200
     except ValidationError as e:
         return jsonify(error=e.messages), 400
 
 
-@bet.route('/math/create', methods=["POST"])
-def create_math():
+@bet.route("/math/create/first", methods=["POST"])
+@jwt_required()
+def create_mathes():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    errors = MatchSchemaView().validate(data)
+    if errors:
+        return jsonify({"message": "Invalid request data", "errors": errors}), 400
+
+    name = data['name']
+    start_math_str = data['start_math']
+    hall_ids = data.get('hall_ids', [])
+    halls = Hall.query.filter(Hall.id.in_(hall_ids)).all()
+    start_math = datetime.fromisoformat(start_math_str)
+    finish_math = datetime.fromisoformat(start_math_str)
+    math = Math(
+        user_id=user_id,
+        name=name,
+        start_math=start_math,
+        hall=halls,
+        finish_math=finish_math
+    )
+
+    db.session.add(math)
+    db.session.commit()
+
+    return jsonify({"message": "Math created successfully", "math_id": math.id}), 201
+
+
+@bet.route('/math/create/<int:id>', methods=["PUT"])
+def update_math(id):
     data = request.get_json()
 
     errors = MatchCreateSchema().validate(data)
     if errors:
         return jsonify({"message": "Invalid request data", "errors": errors}), 400
 
-    name = data['name']
-    kind_of_sport = data['kind_of_sport']
-    description = data.get('description')
-    start_math_str = data['start_math']
     command1_id = data['command1_id']
     command2_id = data['command2_id']
+
     hall_ids = data.get('hall_ids', [])
     halls = Hall.query.filter(Hall.id.in_(hall_ids)).all()
-
-    start_math = datetime.fromisoformat(start_math_str)
-
     command1 = Command.query.get(command1_id)
     command2 = Command.query.get(command2_id)
 
     if not command1 or not command2:
         return jsonify({"message": "Invalid command1_id or command2_id"}), 404
 
+    math = Math.query.get(id)
+    if not math:
+        return jsonify({"message": "Invalid math_id"}), 404
+
     total_price = sum(hall.total_price for hall in halls)
     participants_count = (
-            db.session.query(func.count(func.distinct(User.id)))
-            .filter(User.id.in_(user.id for user in command1.users))
-            .scalar()
-            + db.session.query(func.count(func.distinct(User.id)))
-            .filter(User.id.in_(user.id for user in command2.users))
-            .scalar()
+        db.session.query(func.count(func.distinct(User.id)))
+        .filter(User.id.in_(user.id for user in command1.users))
+        .scalar()
+        + db.session.query(func.count(func.distinct(User.id)))
+        .filter(User.id.in_(user.id for user in command2.users))
+        .scalar()
     )
     if participants_count > 0:
         total_price_per_participant = total_price / participants_count
     else:
         total_price_per_participant = 0
 
-    math = Math(
-        name=name,
-        kind_of_sport=kind_of_sport,
-        description=description,
-        start_math=start_math,
-        command1=command1,
-        command2=command2,
-        hall=halls,
-        price=total_price
-    )
+    math.command1 = command1
+    math.command2 = command2
+    math.hall = halls
+    math.price = total_price
 
-    db.session.add(math)
     db.session.commit()
     divided_number = total_price_per_participant / participants_count
 
     for user in command1.users:
         if user.active_math:
             user.coin -= divided_number
-            send_mail(user.email, "Матч", f"{name}, Дата начала: {start_math_str}, Счет за оплату в размере "
+            send_mail(user.email, "Матч", f"{math.name}, Дата начала: {math.start_math}, Счет за оплату в размере "
                                           f"{divided_number}\n У вас списалось {divided_number}\n"
                                           f"Остаток на счету {user.coin}")
 
     for user in command2.users:
         if user.active_math:
             user.coin -= divided_number
-            send_mail(user.email, "Матч", f"{name}, Дата начала: {start_math_str}, Счет за оплату в размере "
+            send_mail(user.email, "Матч", f"{math.name}, Дата начала: {math.start_math}, Счет за оплату в размере "
                                           f"{divided_number}\n У вас списалось {divided_number}\n"
                                           f"Остаток на счету {user.coin}")
 
-    return jsonify({"message": "Math created successfully", "math_id": math.id}), 201
+    return jsonify({"message": "Math updated successfully", "math_id": math.id}), 200
 
 
 @bet.route('/math/<int:math_id>/cancel', methods=["POST"])
@@ -215,7 +238,7 @@ def place_bet(id):
     math = Math.query.get(id)
     user = User.query.filter_by(id=user_id).first()
 
-    if user in math.audience:
+    if user in math.audience or user in math.command1.users or user in math.command2.users:
         if selected_command == 1:
             if math.command1 is not None:
                 command = math.command1
@@ -280,7 +303,7 @@ def end_match(id):
         for winning_user in winning_users:
             winning_user.coin += share_amount
 
-    math.closed_match = True
+    math.active_math = False
     db.session.commit()
 
     return jsonify({"message": "Match ended successfully"}), 200
@@ -296,10 +319,9 @@ def handle_draw(math):
     for user in command2_users:
         user.coin += math.command2_bet
 
+    total_bet_amount = math.command1_bet + math.command2_bet
+
     math.closed_match = True
     db.session.commit()
 
-    return jsonify({"message": "Match ended in a draw"}), 200
-
-
-
+    return jsonify({"message": "Match ended in a draw. Bet amount returned to all users."}), 200
