@@ -5,11 +5,13 @@ import CardOpenMatches from "../../component/card/card-open-matches/CardOpenMatc
 import axios from "axios";
 import { MyContext } from "../../App";
 import { NavLink } from "react-router-dom";
+import ModalPayment from "../../component/modal/modal-payment/ModalPayment";
 
 function PersonalArea() {
 
 	const {axiosInstance} = useContext(MyContext)
 	const [cardItems, setCardItems] = useState([]);
+	const [modalPaymentOpen, setModalPaymentOpen] = useState(false)
 
 	useEffect(() => {
 		const feacgData = async () => {
@@ -46,6 +48,7 @@ function PersonalArea() {
 
 	return (
 		<div>
+			<ModalPayment modalPaymentOpen={modalPaymentOpen} setModalPaymentOpen={setModalPaymentOpen}></ModalPayment>
 			<Header></Header>
 			<div className="personal__area">
 				<div style={{ width: '700px', display: 'flex', justifyContent: 'space-between' }}>
@@ -63,7 +66,7 @@ function PersonalArea() {
 					<div>
 						<h3>Контакты:</h3>
 						<h4 style={{ color: '#FF0606' }}>877782788</h4>
-						<h3>Оплата:</h3>
+						<h3 onClick={() => setModalPaymentOpen(true)} style={{cursor: 'pointer'}}>Оплата:</h3>
 						<h4 style={{ color: 'white' }}>4402********6655</h4>
 					</div>
 				</div>
