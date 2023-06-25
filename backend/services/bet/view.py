@@ -120,17 +120,16 @@ def create_mathes():
         return jsonify({"message": "Invalid request data", "errors": errors}), 400
 
     name = data['name']
-    start_math_str = data['start_math']
+    active_math=data['active_math']
     hall_ids = data.get('hall_ids', [])
     halls = Hall.query.filter(Hall.id.in_(hall_ids)).all()
-    start_math = datetime.fromisoformat(start_math_str)
-    finish_math = datetime.fromisoformat(start_math_str)
+
     math = Math(
         user_id=user_id,
         name=name,
-        start_math=start_math,
+        active_math=active_math,
+        start_math=datetime.now(),
         hall=halls,
-        finish_math=finish_math
     )
 
     db.session.add(math)
@@ -275,6 +274,7 @@ def confirm_email(email):
         return "Email verification successful. You can now log in."
     return "Email verification failed. Invalid email or user not found."
 
+
 @bet.route('/math/<int:id>/end_match', methods=["POST"])
 def end_match(id):
     math = Math.query.get(id)
@@ -325,3 +325,28 @@ def handle_draw(math):
     db.session.commit()
 
     return jsonify({"message": "Match ended in a draw. Bet amount returned to all users."}), 200
+
+@bet.route('/math/<int:id>/add_goal', methods=["POST"])
+def add_goal(id):
+    math = Math.query.get(id)
+    data = request.get_json()
+    goal = data.get('goal')
+    command_id = data.get('command_id')
+
+    if not command_id:
+        return jsonify({"message": "Invalid data provided"}), 400
+
+    if command_id == 1:
+        if math.command1_goal is None:
+            math.command1_goal = 0
+        math.command1_goal += goal
+    elif command_id == 2:
+        if math.command2_goal is None:
+            math.command2_goal = 0
+        math.command2_goal += goal
+    else:
+        return jsonify({"message": "Invalid command ID"}), 400
+
+    db.session.commit()
+
+    return jsonify({"message": "Goal added successfully"}), 200

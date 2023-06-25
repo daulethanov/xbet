@@ -6,7 +6,7 @@ from flask_jwt_extended import JWTManager
 
 
 db = SQLAlchemy()
-cors = CORS(resources={r"*": {"origins": "*"}})
+cors = CORS()
 security = Security()
 jwt = JWTManager()
 admin = Admin(url="/api/admin")

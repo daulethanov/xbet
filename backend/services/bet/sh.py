@@ -36,16 +36,16 @@ class HallSchema(Schema):
 
 class MathSchema(Schema):
     id = f.Int()
-    # name = f.Str()
-    # kind_of_sport = f.Str()
-    # description = f.Str()
+    name = f.Str()
+    kind_of_sport = f.Str()
+    description = f.Str()
     created_at = f.DateTime()
-    # start_math = f.DateTime()
+    start_math = f.DateTime()
     finish_math = f.DateTime()
     closed_match = f.Boolean()
     commands = f.Nested(CommandSchema(many=True))
     audience = f.Nested(UserSchema(many=True))
-    halls = f.Nested('HallSchema', many=True, only=["id", "name", "price"])
+    hall = f.Nested('HallSchema', many=True, only=["id", "name", "price", "address", 'city'])
 
 
 class MatchCreateSchema(Schema):
@@ -65,5 +65,6 @@ class MatchSchemaView(Schema):
     name = f.Str(required=True)
     hall_ids = f.List(f.Integer())
     user_id = f.Int()
-    start_math = f.DateTime(required=True)
-    finish_math = f.DateTime()
+    active_math =f.Boolean()
+    # start_math = f.DateTime(required=True)
+    # finish_math = f.DateTime()

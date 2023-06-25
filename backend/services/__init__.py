@@ -9,7 +9,7 @@ from services.mail import mail
 
 def init_app(app):
     admin.init_app(app)
-    cors.init_app(app)
+    cors.init_app(app, resources={r"*": {"origins": "*"}})
     mail.init_app(app)
     jwt.init_app(app)
     db.init_app(app)
