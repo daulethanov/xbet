@@ -1,0 +1,66 @@
+.personal__area {
+	width: 1215px;
+	height: auto;
+	margin: 0 auto;
+}
+
+.personal__area h2 {
+	font-size: 24px;
+	font-weight: 600;
+	color: white;
+	margin-bottom: 20px;
+}
+
+.personal__area h3 {
+	color: #FFF;
+	font-size: 20px;
+	font-weight: 600;
+	margin-bottom: 5px;
+}
+
+.personal__area h4 {
+	font-size: 24px;
+	font-family: Montserrat;
+	font-weight: 600;
+	padding-bottom: 22px;
+}
+
+.personal__area h5 {
+	color: #FFF;
+	text-align: right;
+	font-size: 20px;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.personal__area__line {
+	width: 100%;
+	height: 2px;
+	background-color: #C4F750;
+	margin-top: 32px;
+	margin-bottom: 32px;
+}
+
+.style__item {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+}
+
+.style__item li{
+	max-width: 220px;
+	height: 250px;
+	font-size: 18px;
+	font-weight: 600;
+	color: white;
+	text-align: center;
+	cursor: pointer;
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+.style__item img {
+	width: 100%;
+	height: 220px;
+	border-radius: 10px;
+}

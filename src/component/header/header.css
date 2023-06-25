@@ -1,0 +1,51 @@
+header {
+	width: 100%;
+	height: 75px;
+	margin-bottom: 30px;
+}
+
+.header__content {
+	width: 1215px;
+	height: 100%;
+	margin: 0 auto;
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.header__content h1 {
+	font-size: 40px;
+	font-weight: 600;
+}
+
+.header__content span {
+	cursor: pointer;
+}
+
+.header__content ul {
+	width: 556px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.header__content ul li {
+	font-size: 16px;
+	font-weight: 600;
+	color: white;
+	cursor: pointer;
+}
+
+.header__content a {
+	color: white;
+}
+
+.active__linck {
+	color: white;
+}
+
+.active__linck.active {
+	color: #5DCD98;
+}
